@@ -1,8 +1,7 @@
 """Top-K 输入法 · 控制台版交互。
 
 用法：
-  python3 main.py --provider api  --context "朋友问你：今晚一起吃饭吗"
-  python3 main.py --provider mock --context "离线演示"
+  python3 main.py --context "朋友问你：今晚一起吃饭吗"
 """
 from __future__ import annotations
 
@@ -15,7 +14,6 @@ from .cache import DiskCache
 from .providers import (
     CachingProvider,
     DeepSeekProvider,
-    MockProvider,
     PrefetchProvider,
     SafeProvider,
     StaticProvider,
@@ -43,19 +41,12 @@ def _clear() -> None:
 
 def build_provider(name: str, key_file: Path, use_cache: bool,
                    prefetch: int = 3, prefetch_depth: int = 2, prefetch_workers: int = 6):
-    # mock 与 api 分开缓存：mock 的脚本候选不能污染真实 LLM 的缓存
-    cache = DiskCache(ROOT / (".topk_cache.json" if name == "api" else ".topk_cache_mock.json")) \
-        if use_cache else None
-    if name == "mock":
-        engine = MockProvider()
-    else:
-        engine = DeepSeekProvider(key_file.read_text(encoding="utf-8").strip())  # 仅程序运行时读取密钥
+    cache = DiskCache(ROOT / ".topk_cache.json") if use_cache else None
+    engine = DeepSeekProvider(key_file.read_text(encoding="utf-8").strip())  # 仅程序运行时读取密钥
     inner = CachingProvider(engine, cache) if cache is not None else engine
     if prefetch > 0 and prefetch_depth > 0 and cache is not None:  # 预取依赖缓存落盘，否则结果会被丢弃
         inner = PrefetchProvider(inner, cache, limit=prefetch,
                                  depth=prefetch_depth, workers=prefetch_workers)
-    if name == "mock":
-        return inner
     return SafeProvider(inner, StaticProvider())
 
 
@@ -82,8 +73,8 @@ def _pause(text: str = "按回车继续…") -> None:
 
 def main(argv: "list[str] | None" = None) -> None:
     parser = argparse.ArgumentParser(description="Top-K 智能输入法 · 控制台版")
-    parser.add_argument("--provider", choices=["api", "mock"], default="api",
-                        help="api=DeepSeek 在线预测（默认）；mock=离线演示")
+    parser.add_argument("--provider", choices=["api"], default="api",
+                        help="候选来源：DeepSeek 在线预测（默认）")
     parser.add_argument("--context", default="", help="初始场景/上文")
     parser.add_argument("--k", type=int, default=8, help="每批候选数量（默认 8）")
     parser.add_argument("--key-file", default=str(ROOT / "key.txt"),

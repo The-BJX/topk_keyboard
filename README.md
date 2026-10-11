@@ -22,8 +22,7 @@
 ### 控制台版
 
 ```bash
-py -3 main.py --provider api --context "朋友问你：今晚一起吃饭吗"
-py -3 main.py --provider mock          # 离线演示
+py -3 main.py --context "朋友问你：今晚一起吃饭吗"
 ```
 
 交互命令：`序号`=点选候选 · `m`=换一批 · `u`=撤销 · `e`=设场景 · `s`=发送 · `h`=帮助 · `q`=退出
@@ -31,8 +30,7 @@ py -3 main.py --provider mock          # 离线演示
 ### 网页版 Demo（模拟手机聊天）
 
 ```bash
-py -3 server.py --provider api --open   # 在线，自动打开浏览器
-py -3 server.py --provider mock         # 离线演示
+py -3 server.py --open   # 启动 + 自动打开浏览器
 ```
 
 浏览器访问 <http://127.0.0.1:8000>。页面左侧是手机外框里的微信式聊天：选择场景开始对话，点候选大按钮组句，点"发送"后对方（LLM 扮演）会在"正在输入…"后自动回复。
@@ -42,7 +40,7 @@ py -3 server.py --provider mock         # 离线演示
 ```
 topk/
   providers.py   候选来源与装饰器链
-                 MockProvider（离线脚本）/ DeepSeekProvider（LLM）
+                 DeepSeekProvider（LLM）
                  CachingProvider（磁盘缓存）→ PrefetchProvider（两步并发预取）
                  → SafeProvider（异常兜底）
   session.py     UI 无关的输入会话状态机（前缀生长 / 撤销 / 换批 / 提交）
@@ -58,7 +56,6 @@ web/index.html   模拟手机前端（微信式聊天 + 大按钮候选区）
 
 | 参数 | 说明 | 默认 |
 | --- | --- | --- |
-| `--provider` | `api`=DeepSeek 在线；`mock`=离线演示 | `api` |
 | `--k` | 每批候选数量（网页版 6 = 2×3 大按钮） | 控制台 8 / 网页 6 |
 | `--prefetch` | 每屏预取的候选分支数（0 关闭） | 3 |
 | `--prefetch-depth` | 预取前瞻步数 | 2 |

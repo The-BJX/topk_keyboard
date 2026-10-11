@@ -4,8 +4,7 @@
   1. 发送消息后，对方（LLM 扮演）自动回复；
   2. 候选按钮 k=6（2×3 大按钮网格），全部大尺寸便于点按。
 
-  py -3 server.py --provider mock            # 离线演示
-  py -3 server.py --provider api --open      # 在线 + 自动打开浏览器
+  py -3 server.py --open      # 启动 + 自动打开浏览器
 然后浏览器访问 http://127.0.0.1:8000
 """
 from __future__ import annotations
@@ -27,7 +26,7 @@ WEB_DIR = ROOT / "web"
 
 
 def unwrap_engine(provider):
-    """剥开装饰器链，拿到底层引擎（MockProvider / DeepSeekProvider）。"""
+    """剥开装饰器链，拿到底层引擎（DeepSeekProvider）。"""
     while hasattr(provider, "inner"):
         provider = provider.inner
     return provider
@@ -81,7 +80,7 @@ class ChatDemo:
         threading.Thread(target=self._reply_worker, daemon=True, name="topk-reply").start()
 
     def _reply_worker(self) -> None:
-        """对方“正在输入…”→ 生成回复 → 并入场景 → 预热新候选。"""
+        """对方“正在输入…”→ 生成回复 → 并入场景 → 预热新候选（全程保持“正在输入”）。"""
         try:
             time.sleep(random.uniform(1.2, 2.4))
             with self._lock:
@@ -95,11 +94,12 @@ class ChatDemo:
                     self.messages.append({"role": "friend", "text": reply})
                     self.session.set_context(self._context_text())
                     self.pending = True
-                    self._replying = False  # 消息已送达，“正在输入”立即结束，只等候选
                     self._touch()
-                self._warm()
+                self._warm()  # 新候选就绪后，finally 统一结束“正在输入”
         finally:
-            self._replying = False
+            with self._lock:
+                self._replying = False
+                self._touch()
 
     # ---- 对外 API ----
     def start(self, friend_text: str) -> dict:
@@ -147,6 +147,8 @@ class ChatDemo:
     def snapshot(self) -> dict:
         with self._lock:
             cands = self.session.ready_candidates()
+            err = getattr(self.provider, "last_error", None)
+            self.provider.last_error = None  # 读后即清：作为一次性通知下发给前端
             return {
                 "version": self.version,
                 "started": bool(self.messages),
@@ -156,6 +158,7 @@ class ChatDemo:
                 "draft": self.session.draft,
                 "candidates": [] if (self.pending or not cands) else [c.text for c in cands],
                 "prefetched": getattr(self.provider, "prefetch_done", 0),
+                "error": err,
             }
 
 
@@ -203,8 +206,6 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Top-K 输入法 · 网页版 Demo（模拟手机聊天）")
-    parser.add_argument("--provider", choices=["api", "mock"], default="api",
-                        help="api=DeepSeek 在线预测（默认）；mock=离线演示")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--k", type=int, default=6, help="候选按钮数（网页版默认 6，2×3 大按钮）")
     parser.add_argument("--key-file", default=str(ROOT / "key.txt"))
@@ -215,13 +216,13 @@ def main() -> None:
     parser.add_argument("--open", action="store_true", help="启动后自动打开浏览器")
     args = parser.parse_args()
 
-    provider = build_provider(args.provider, Path(args.key_file), not args.no_cache,
+    provider = build_provider("api", Path(args.key_file), not args.no_cache,
                               args.prefetch, args.prefetch_depth, args.prefetch_workers)
     demo = ChatDemo(provider, unwrap_engine(provider), k=args.k)
     Handler.demo = demo
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     url = f"http://127.0.0.1:{args.port}"
-    print(f"Top-K 输入法网页 Demo：{url}  (provider={args.provider}, k={args.k})", flush=True)
+    print(f"Top-K 输入法网页 Demo：{url}  (provider=api, k={args.k})", flush=True)
     if args.open:
         webbrowser.open(url)
     try:

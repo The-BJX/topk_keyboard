@@ -1,7 +1,6 @@
 """候选提供者层。
 
 架构：CandidateProvider 统一接口
-  MockProvider      离线演示/测试，不访问网络
   DeepSeekProvider  LLM 在线生成（OpenAI 兼容协议，JSON 输出）
   CachingProvider   装饰器：磁盘缓存
   PrefetchProvider  装饰器：后台预取“一步之内”的下一屏结果，消除点选延迟
@@ -67,31 +66,6 @@ class StaticProvider(CandidateProvider):
         offset = (batch * 3) % len(pool)
         pool = pool[offset:] + pool[:offset]
         return [Candidate(t) for t in pool[:k]]
-
-
-class MockProvider(CandidateProvider):
-    """离线演示/自动化测试用：按脚本返回固定候选。"""
-
-    _SCRIPT: "dict[str, list[str]]" = {
-        "": ["好的，没问题", "今晚有事，去不了", "吃什么？", "好啊，去哪吃", "我稍晚点到", "下次吧，最近有点忙"],
-        "好的": ["，没问题", "，一会儿见", "，那就这么定了", "！"],
-        "好啊": ["，去哪吃", "，我饿了", ",吃什么"],
-    }
-    _GENERIC: "list[str]" = ["。", "？", "！", "，然后呢", "再说", "吧"]
-
-    def get_candidates(self, context: str, draft: str, k: int = 8, batch: int = 0) -> "list[Candidate]":
-        base = self._SCRIPT.get(draft, self._GENERIC)
-        offset = batch % len(base)
-        base = base[offset:] + base[:offset]
-        return [Candidate(t) for t in base[:k]]
-
-    _REPLIES = ("好呀好呀", "那说定了？", "你看几点方便？", "哈哈，好啊",
-                "那我等你消息", "行，就这么定了", "嗯嗯，到时候见")
-    _reply_i = 0
-
-    def get_reply(self, context: str) -> str:
-        MockProvider._reply_i += 1
-        return MockProvider._REPLIES[MockProvider._reply_i % len(MockProvider._REPLIES)]
 
 
 # ---------------------------------------------------------------- 在线来源
