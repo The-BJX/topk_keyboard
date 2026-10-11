@@ -1,4 +1,4 @@
-"""Top-K 输入法 · 控制台版交互。
+"""懂你意思输入法 · 控制台版交互。
 
 用法：
   python3 main.py --context "朋友问你：今晚一起吃饭吗"
@@ -52,7 +52,7 @@ def build_provider(name: str, key_file: Path, use_cache: bool,
 
 def render(session: InputSession) -> str:
     lines = [
-        "=============== Top-K 输入法（控制台版）===============",
+        "=============== 懂你意思输入法（控制台版）===============",
         f"场景　：{session.context or '（未设置，按 e 设置）'}",
         f"已输入：{session.draft or '∅'}",
         "-" * 56,
@@ -72,7 +72,7 @@ def _pause(text: str = "按回车继续…") -> None:
 
 
 def main(argv: "list[str] | None" = None) -> None:
-    parser = argparse.ArgumentParser(description="Top-K 智能输入法 · 控制台版")
+    parser = argparse.ArgumentParser(description="懂你意思输入法 · 控制台版")
     parser.add_argument("--provider", choices=["api"], default="api",
                         help="候选来源：DeepSeek 在线预测（默认）")
     parser.add_argument("--context", default="", help="初始场景/上文")

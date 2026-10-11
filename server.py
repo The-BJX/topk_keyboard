@@ -1,4 +1,4 @@
-"""网页版 Demo 服务器：模拟手机里“微信式”聊天 + 大按钮 Top-K 候选。
+"""网页版 Demo 服务器：模拟手机里“微信式”聊天 + 大按钮候选（懂你意思输入法）。
 
 复用 topk 全部核心（缓存 / 两步并发预取 / 离线兜底），新增：
   1. 发送消息后，对方（LLM 扮演）自动回复；
@@ -111,7 +111,7 @@ class ChatDemo:
         self._warm()
         return self.snapshot()
 
-    def action(self, kind: str, index: int = 0) -> dict:
+    def action(self, kind: str, index: int = 0, text: str = "") -> dict:
         run = False
         with self._lock:
             if kind == "select":
@@ -129,6 +129,12 @@ class ChatDemo:
             elif kind == "more":
                 if self.session.ready_candidates():
                     self.session.more()
+                    self.pending = True
+                    self._touch()
+                    run = True
+            elif kind == "type":
+                if text.strip():
+                    self.session.type_text(text)
                     self.pending = True
                     self._touch()
                     run = True
@@ -194,7 +200,8 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/start":
                 self._send_json(self.demo.start(str(body.get("text", ""))))
             elif self.path == "/api/action":
-                self._send_json(self.demo.action(str(body.get("type", "")), int(body.get("index", 0))))
+                self._send_json(self.demo.action(str(body.get("type", "")), int(body.get("index", 0)),
+                                                 str(body.get("text", ""))))
             else:
                 self._send_json({"error": "not found"}, 404)
         except Exception as exc:
@@ -205,7 +212,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Top-K 输入法 · 网页版 Demo（模拟手机聊天）")
+    parser = argparse.ArgumentParser(description="懂你意思输入法 · 网页版 Demo（模拟手机聊天）")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--k", type=int, default=6, help="候选按钮数（网页版默认 6，2×3 大按钮）")
     parser.add_argument("--key-file", default=str(ROOT / "key.txt"))
@@ -222,7 +229,7 @@ def main() -> None:
     Handler.demo = demo
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     url = f"http://127.0.0.1:{args.port}"
-    print(f"Top-K 输入法网页 Demo：{url}  (provider=api, k={args.k})", flush=True)
+    print(f"懂你意思输入法 · 网页 Demo：{url}  (provider=api, k={args.k})", flush=True)
     if args.open:
         webbrowser.open(url)
     try:

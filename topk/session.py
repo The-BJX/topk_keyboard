@@ -60,6 +60,16 @@ class InputSession:
         self._batch += 1
         self._invalidate()
 
+    def type_text(self, text: str) -> None:
+        """回退模式：把普通键盘手工输入的文字并入前缀，可被 undo 撤销。"""
+        text = text.strip()
+        if not text:
+            return
+        self._undo_stack.append(self.draft)
+        self.draft += text
+        self._batch = 0
+        self._invalidate()
+
     def undo(self) -> bool:
         """撤销上一次点选。"""
         if not self._undo_stack:

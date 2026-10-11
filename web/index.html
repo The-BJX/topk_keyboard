@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Top-K 输入法 · 手机聊天 Demo</title>
+<title>懂你意思输入法 · 手机聊天 Demo</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -14,7 +14,6 @@
   }
   .side { max-width: 300px; }
   .side h1 { font-size: 26px; margin-bottom: 12px; color: #fff; }
-  .side h1 em { color: #07C160; font-style: normal; }
   .side p { font-size: 15px; line-height: 1.8; color: #B9BBC1; margin-bottom: 16px; }
   .side ul { list-style: none; font-size: 14px; line-height: 2; color: #9DA0A8; }
   .side li::before { content: "· "; color: #07C160; font-weight: 700; }
@@ -95,6 +94,7 @@
   }
   .draftbar .draft-text.empty { color: #BBB; font-weight: 400; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 10px; }
+  .grid.kbmode { display: block; }  /* 键盘回退模式：不受两列网格约束 */
   .cand {
     min-height: 64px; border-radius: 12px; border: 1.5px solid #D9D9D9;
     background: #FFF; color: #111; font-size: 17.5px; line-height: 1.3;
@@ -139,6 +139,23 @@
     flex: 1.5; background: #07C160; border-color: #07C160; color: #fff; font-weight: 600;
   }
   .legend { font-size: 12px; color: #A0A0A0; text-align: center; padding-top: 8px; }
+  /* 键盘回退模式：输入框 + 下一行大按钮（与整体大按钮风格一致） */
+  .kbrow { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 10px; }
+  .kbrow input {
+    width: 100%; min-height: 64px; border: 1.5px solid #07C160; border-radius: 12px;
+    background: #FFF; color: #111; font-size: 17.5px; line-height: 1.4;
+    padding: 8px 12px; font-family: inherit;
+  }
+  .kbrow input:focus { outline: 2px solid #07C160; outline-offset: -1px; }
+  .kbbtns { display: flex; gap: 8px; }
+  .kbbtns .kbsend, .kbbtns .kbcancel {
+    flex: 1; min-height: 56px; border-radius: 12px;
+    font-size: 17px; cursor: pointer; font-family: inherit;
+    transition: transform .1s, opacity .15s;
+  }
+  .kbbtns .kbsend { border: none; background: #07C160; color: #fff; font-weight: 600; }
+  .kbbtns .kbcancel { border: 1.5px solid #D9D9D9; background: #FFF; color: #111; }
+  .kbbtns .kbsend:active, .kbbtns .kbcancel:active { transform: scale(.97); }
 
   /* ---------- 场景选择浮层 ---------- */
   .overlay {
@@ -165,7 +182,7 @@
 </head>
 <body>
   <aside class="side">
-    <h1>Top-K <em>输入法</em></h1>
+    <h1>懂你意思输入法</h1>
     <p>模拟手机聊天场景：不碰键盘，只点候选大按钮就能把一句话“点”出来。发送后，对方（LLM 扮演）会自动回复。</p>
     <ul>
       <li>候选由 AI 根据聊天上下文实时预测</li>
@@ -184,12 +201,13 @@
       <div class="dock">
         <div class="draftbar"><span>已输入</span><span class="draft-text empty" id="draft">∅</span></div>
         <div class="grid" id="grid"></div>
-        <div class="actions">
+        <div class="actions" id="actions">
           <button class="btn" id="undoBtn">撤销</button>
+          <button class="btn" id="kbBtn">⌨ 打字</button>
           <button class="btn" id="moreBtn">换一批</button>
           <button class="btn primary" id="sendBtn">发 送</button>
         </div>
-        <div class="legend">点候选把短语拼进句子 · 满意后发送</div>
+        <div class="legend">点候选把短语拼进句子 · 没合适的词就 ⌨ 打字</div>
       </div>
 
       <div class="overlay" id="overlay">
@@ -212,7 +230,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 let cur = { version: -1, messages: [], draft: "", candidates: [], pending: false, replying: false, started: false, prefetched: 0 };
-let started = false, awaiting = false, chatKey = "", selChip = null;
+let started = false, awaiting = false, chatKey = "", selChip = null, kbMode = false;
 
 function esc(s) {
   return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -257,7 +275,29 @@ let lastGridKey = null;
 
 function renderGrid() {
   const grid = $("grid");
+  // 键盘回退模式：输入框取代候选网格
+  if (kbMode) {
+    if (lastGridKey !== "kb") {
+      lastGridKey = "kb";
+      grid.classList.add("kbmode");
+      grid.classList.remove("pending");
+      grid.innerHTML = `<div class="kbrow">
+        <input id="kbin" maxlength="200" placeholder="这里直接打字，并入后继续智能候选…">
+        <div class="kbbtns">
+          <button class="kbcancel" onclick="toggleKb(false)">返 回</button>
+          <button class="kbsend" onclick="kbCommit()">并 入</button>
+        </div>
+      </div>`;
+      $("kbin").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); kbCommit(); }
+        else if (e.key === "Escape") toggleKb(false);
+      });
+      setTimeout(() => $("kbin") && $("kbin").focus(), 60);
+    }
+    return;
+  }
   // 候选内容没变就不重建 DOM：pending 期间只切换状态类，避免入场动画重播导致闪烁
+  grid.classList.remove("kbmode");
   const key = cur.candidates.length ? JSON.stringify(cur.candidates) : "empty:" + cur.pending;
   if (key !== lastGridKey) {
     lastGridKey = key;
@@ -281,8 +321,10 @@ function render() {
   }
   d.classList.toggle("empty", !cur.draft);
   renderGrid();
+  $("actions").style.display = kbMode ? "none" : "";
   $("sendBtn").disabled = !cur.draft || cur.pending;
   $("undoBtn").disabled = cur.pending;
+  $("kbBtn").disabled = cur.pending;
   $("moreBtn").disabled = cur.pending;
   $("stats").textContent = cur.prefetched ? `后台已预取 ${cur.prefetched} 屏候选` : "";
 }
@@ -296,6 +338,30 @@ async function act(type, index) {
   awaiting = false; render();
 }
 window.act = act;
+
+function toggleKb(on) {
+  kbMode = on;
+  render();
+}
+window.toggleKb = toggleKb;
+
+async function kbCommit() {              // 键盘输入并入前缀，回到候选模式
+  const inp = $("kbin");
+  const t = ((inp || {}).value || "").trim();
+  if (!t || awaiting) return;
+  if (inp) inp.value = "";               // 立即清空：防止回车/双击把同一文本提交两次
+  awaiting = true;
+  cur.pending = true; render();
+  try {
+    cur = await api("/api/action", { type: "type", index: 0, text: t });
+    kbMode = false;
+  } catch (e) {                          // 失败还原输入内容，可重试
+    cur.pending = false;
+    const el = $("kbin"); if (el) el.value = t;
+  }
+  awaiting = false; render();
+}
+window.kbCommit = kbCommit;
 
 async function start() {
   const text = ($("custom").value || "").trim() || (selChip && selChip.dataset.text);
@@ -322,6 +388,7 @@ document.querySelectorAll(".chip").forEach((ch) => ch.addEventListener("click", 
 }));
 $("startBtn").addEventListener("click", start);
 $("undoBtn").addEventListener("click", () => act("undo", 0));
+$("kbBtn").addEventListener("click", () => { if (!awaiting) toggleKb(!kbMode); });
 $("moreBtn").addEventListener("click", () => act("more", 0));
 $("sendBtn").addEventListener("click", () => act("send", 0));
 
