@@ -82,8 +82,9 @@ class DeepSeekProvider(CandidateProvider):
 规则：
 1. text 是对【已输入】的续写短语，不要重复已输入的内容；长度 1~12 个字，符合日常口语。可以只是一个词、一个片段，也可以直接拼成完整的一句话。
 2. 短语要按聊天软件里原本的样子带标点：句中停顿用“，”，问句末尾带“？”，感叹末尾带“！”，陈述收尾可带“。”，例如“好的，没问题”“几点？”“今晚有事，去不了”。候选“！”“？”“。”这类续接标点也可以。
-3. 候选之间要覆盖不同的意图方向（例如 同意/拒绝/提问/改约/表达感受），按可能性从高到低排序。
-4. 只输出如下格式的 JSON，不要输出任何其他内容：
+3. 表情：表达完整语气、适合作为句子收尾的候选，可以在末尾带上 1 个贴切的 emoji（如 😄👍🙏🥺🍳），让消息更生动；作为句子中间续接的短语（如“我想说”“今晚”）不要带。每批 {k} 个候选里带 emoji 的控制在 2~3 个，用户想选不带表情的表达时也要有得选。
+4. 候选之间要覆盖不同的意图方向（例如 同意/拒绝/提问/改约/表达感受），按可能性从高到低排序。
+5. 只输出如下格式的 JSON，不要输出任何其他内容：
 {"candidates":[{"text":"短语"}]}"""
 
     def __init__(self, api_key: str, model: str = "deepseek-chat", timeout: float = 30.0):
@@ -152,13 +153,14 @@ class DeepSeekProvider(CandidateProvider):
 
     # ---- 对方自动回复（网页 demo 用） ----
     _REPLY_SYSTEM = ("你在聊天软件里扮演用户的朋友。根据【聊天记录】，用一句自然的口语回复用户刚发出的消息，"
-                     "4~20 个字，贴合上下文与日常语气。只输出这句话本身：不要引号、不要前缀、不要解释。")
+                     "4~20 个字，贴合上下文与日常语气，并在句中或句尾配上 1~2 个贴切的 emoji 表情，让消息更生动；"
+                     "emoji 不要超过 2 个，不要堆砌。只输出这句话本身：不要引号、不要前缀、不要解释。")
 
     def get_reply(self, context: str) -> str:
         content = self._chat([
             {"role": "system", "content": self._REPLY_SYSTEM},
             {"role": "user", "content": f"【聊天记录】\n{context or '（新对话）'}"},
-        ], max_tokens=60, json_mode=False)
+        ], max_tokens=80, json_mode=False)
         return content.strip().strip("“”\"'「」『』")
 
 
