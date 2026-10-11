@@ -196,7 +196,7 @@
   <div class="phone">
     <div class="screen">
       <div class="statusbar"><span>9:41</span><span>···</span></div>
-      <div class="wx-head"><span class="back">‹</span><span class="name">小雨</span><span class="more">···</span></div>
+      <div class="wx-head"><span class="back">‹</span><span class="name" id="wxName">微信聊天</span><span class="more">···</span></div>
       <div class="chat" id="chat"></div>
       <div class="dock">
         <div class="draftbar"><span>已输入</span><span class="draft-text empty" id="draft">∅</span></div>
@@ -214,6 +214,10 @@
         <div class="overlay-card">
           <h2>选择一个聊天场景</h2>
           <div class="chips">
+            <button class="chip" data-name="儿子" data-text="爸，降压药到点了，记得吃一片，吃完回我一声哈。">回复吃药提醒</button>
+            <button class="chip" data-name="孙女" data-text="爷爷，下午有个快递到咱家，是给您买的按摩仪，麻烦您开一下门哈！">回复收快递提醒</button>
+            <button class="chip" data-name="三连战友群" data-text="老班长，八一节快乐！祝您身体健康，咱们的战友情长长久久！">战友节日祝福</button>
+            <button class="chip" data-name="康寿源·小王" data-text="叔，咱们这款人参滋补套餐今天最后一天买三送一，吃了保证精神头倍儿棒！">拒绝保健品推销</button>
             <button class="chip" data-text="周末有空吗？一起吃个饭呀？">朋友约饭</button>
             <button class="chip" data-text="周六下午一起去看新上的电影吗？">约看电影</button>
             <button class="chip" data-text="这周的方案大概什么时候能给我呀？">同事催方案</button>
@@ -366,6 +370,7 @@ window.kbCommit = kbCommit;
 async function start() {
   const text = ($("custom").value || "").trim() || (selChip && selChip.dataset.text);
   if (!text) { $("hint").textContent = "请先选择场景，或输入一条消息"; return; }
+  $("wxName").textContent = (selChip && selChip.dataset.name) || "微信聊天";
   $("startBtn").disabled = true;
   $("hint").textContent = "正在生成第一批候选…";
   try {
