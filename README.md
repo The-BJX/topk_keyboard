@@ -17,7 +17,9 @@
 ### 准备
 
 1. Python 3.10+
-2. 在项目根目录创建 `key.txt`，写入你的 [DeepSeek API Key](https://platform.deepseek.com/)（仅程序运行时读取，请勿提交到版本库）
+2. **部署者必读：本项目的候选与回复全部依赖 DeepSeek API。运行前请在项目根目录创建 `key.txt`，写入你的 [DeepSeek API Key](https://platform.deepseek.com/)，否则所有智能候选都会退化为离线兜底池（界面顶部会出现黄色降级提示）。**
+
+> `key.txt` 仅在程序运行时读取，请勿提交到版本库；密钥一旦泄露请立即到 DeepSeek 控制台吊销更换。
 
 ### 控制台版
 
