@@ -132,6 +132,12 @@ class ChatDemo:
                     self.pending = True
                     self._touch()
                     run = True
+            elif kind == "tone":
+                if self.session.ready_candidates() and index in (-1, 1):
+                    self.session.more_tone(index)
+                    self.pending = True
+                    self._touch()
+                    run = True
             elif kind == "type":
                 if text.strip():
                     self.session.type_text(text)

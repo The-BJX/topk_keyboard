@@ -187,6 +187,7 @@
     <ul>
       <li>候选由 AI 根据聊天上下文实时预测</li>
       <li>点候选把短语拼进句子，随时可撤销 / 换一批</li>
+      <li>😊 更积极 / 😔 更消极：一键调制候选的情绪与立场，想表达不满就表达不满</li>
       <li>组好一句点发送，对方（LLM 扮演）会自动回复</li>
       <li>后台两步并发预取，点选近乎零等待</li>
     </ul>
@@ -206,6 +207,10 @@
           <button class="btn" id="kbBtn">⌨ 打字</button>
           <button class="btn" id="moreBtn">换一批</button>
           <button class="btn primary" id="sendBtn">发 送</button>
+        </div>
+        <div class="actions" id="toneRow">
+          <button class="btn" id="toneNegBtn">😔 更消极</button>
+          <button class="btn" id="tonePosBtn">😊 更积极</button>
         </div>
         <div class="legend">点候选把短语拼进句子 · 没合适的词就 ⌨ 打字</div>
       </div>
@@ -326,10 +331,13 @@ function render() {
   d.classList.toggle("empty", !cur.draft);
   renderGrid();
   $("actions").style.display = kbMode ? "none" : "";
+  $("toneRow").style.display = kbMode ? "none" : "";
   $("sendBtn").disabled = !cur.draft || cur.pending;
   $("undoBtn").disabled = cur.pending;
   $("kbBtn").disabled = cur.pending;
   $("moreBtn").disabled = cur.pending;
+  $("toneNegBtn").disabled = cur.pending;
+  $("tonePosBtn").disabled = cur.pending;
   $("stats").textContent = cur.prefetched ? `后台已预取 ${cur.prefetched} 屏候选` : "";
 }
 
@@ -395,6 +403,8 @@ $("startBtn").addEventListener("click", start);
 $("undoBtn").addEventListener("click", () => act("undo", 0));
 $("kbBtn").addEventListener("click", () => { if (!awaiting) toggleKb(!kbMode); });
 $("moreBtn").addEventListener("click", () => act("more", 0));
+$("toneNegBtn").addEventListener("click", () => act("tone", -1));
+$("tonePosBtn").addEventListener("click", () => act("tone", 1));
 $("sendBtn").addEventListener("click", () => act("send", 0));
 
 setInterval(async () => {

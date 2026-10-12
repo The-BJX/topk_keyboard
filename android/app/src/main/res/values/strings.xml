@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">懂你意思输入法</string>
+    <string name="ime_name">懂你意思输入法</string>
+    <string name="a11y_desc">在微信聊天界面自动读取最近几条消息，为 AI 候选提供上下文。本服务只读取屏幕文字，绝不代替你点击或发送任何内容。</string>
+</resources>

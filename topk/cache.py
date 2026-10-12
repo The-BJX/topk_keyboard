@@ -1,4 +1,4 @@
-"""磁盘缓存：同一 (场景, 前缀, k, 批次) 的候选只让 LLM 算一次。"""
+"""磁盘缓存：同一 (场景, 前缀, k, 批次, 立场倾向, 上一轮候选) 的候选只让 LLM 算一次。"""
 from __future__ import annotations
 
 import hashlib
@@ -20,16 +20,20 @@ class DiskCache:
             self._data = {}
 
     @staticmethod
-    def make_key(context: str, draft: str, k: int, batch: int) -> str:
-        raw = f"{context}\x00{draft}\x00{k}\x00{batch}"
+    def make_key(context: str, draft: str, k: int, batch: int,
+                 stance: int = 0, prev: "list[str] | None" = None) -> str:
+        prev_text = "\x00".join(prev) if prev else ""
+        raw = f"{context}\x00{draft}\x00{k}\x00{batch}\x00{stance}\x00{prev_text}"
         return hashlib.sha1(raw.encode("utf-8")).hexdigest()
 
-    def get(self, context: str, draft: str, k: int, batch: int):
-        return self._data.get(self.make_key(context, draft, k, batch))
+    def get(self, context: str, draft: str, k: int, batch: int,
+            stance: int = 0, prev: "list[str] | None" = None):
+        return self._data.get(self.make_key(context, draft, k, batch, stance, prev))
 
-    def put(self, context: str, draft: str, k: int, batch: int, candidates: list) -> None:
+    def put(self, context: str, draft: str, k: int, batch: int, candidates: list,
+            stance: int = 0, prev: "list[str] | None" = None) -> None:
         with self._lock:
-            self._data[self.make_key(context, draft, k, batch)] = candidates
+            self._data[self.make_key(context, draft, k, batch, stance, prev)] = candidates
             try:
                 tmp = self.path.with_name(self.path.name + ".tmp")
                 tmp.write_text(

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 调用 DeepSeek API 生成候选 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 调试悬浮窗：显示发给 LLM 的请求包体 -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- 读取剪贴板：用于“粘贴对方消息”注入聊天上下文 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@android:drawable/ic_menu_manage"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar"
+        android:allowBackup="true">
+
+        <!-- 设置/引导入口 -->
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 输入法服务 -->
+        <service
+            android:name=".ImeService"
+            android:exported="true"
+            android:label="@string/ime_name"
+            android:permission="android.permission.BIND_INPUT_METHOD">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/method" />
+        </service>
+
+        <!-- 微信消息无障碍采集：只读屏幕，不模拟点击 -->
+        <service
+            android:name=".WeChatReaderService"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_config" />
+        </service>
+
+        <!-- 通知监听：微信新消息到达时捕获内容，本地保存为聊天记录（主上下文来源） -->
+        <service
+            android:name=".NotifyCatcherService"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- 调试悬浮窗：显示发给 LLM 的请求包体（设置页开关控制） -->
+        <service
+            android:name=".DebugOverlayService"
+            android:exported="false"
+            android:stopWithTask="false" />
+    </application>
+</manifest>

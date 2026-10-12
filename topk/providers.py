@@ -28,9 +28,11 @@ class Candidate:
 
 
 class CandidateProvider:
-    """所有候选来源的统一接口。"""
+    """所有候选来源的统一接口。stance 为立场倾向值（0 中性，正积极负消极），
+    prev 为上一轮候选文本（tone/换批时作相对调制基准）。"""
 
-    def get_candidates(self, context: str, draft: str, k: int = 8, batch: int = 0) -> "list[Candidate]":
+    def get_candidates(self, context: str, draft: str, k: int = 8, batch: int = 0,
+                       stance: int = 0, prev: "list[str] | None" = None) -> "list[Candidate]":
         raise NotImplementedError
 
 
@@ -61,7 +63,8 @@ _PUNCT_POOL: "list[str]" = ["。", "？", "！", "，"]
 class StaticProvider(CandidateProvider):
     """离线兜底：网络或 API 异常时保证输入法始终可用。"""
 
-    def get_candidates(self, context: str, draft: str, k: int = 8, batch: int = 0) -> "list[Candidate]":
+    def get_candidates(self, context: str, draft: str, k: int = 8, batch: int = 0,
+                       stance: int = 0, prev: "list[str] | None" = None) -> "list[Candidate]":
         pool = (_PUNCT_POOL + _FALLBACK_POOL) if draft else _FALLBACK_POOL
         offset = (batch * 3) % len(pool)
         pool = pool[offset:] + pool[:offset]
@@ -93,14 +96,35 @@ class DeepSeekProvider(CandidateProvider):
         self.model = model
         self.timeout = timeout
 
-    def get_candidates(self, context: str, draft: str, k: int = 8, batch: int = 0) -> "list[Candidate]":
+    def get_candidates(self, context: str, draft: str, k: int = 8, batch: int = 0,
+                       stance: int = 0, prev: "list[str] | None" = None) -> "list[Candidate]":
         user_msg = (
             f"【场景】{context.strip() or '（未设置，按日常聊天理解）'}\n"
             f"【已输入】{draft if draft else '（空，请预测整句的开头）'}\n"
             f"请给出 {k} 个候选。"
         )
-        if batch > 0:
-            user_msg += f"\n注意：这是第 {batch + 1} 批候选，请给出之前批次未覆盖的其他表达方向。"
+        # 立场/相对调制：把立场倾向值与上一轮候选交给模型，语气相对上一轮调整
+        has_prev = bool(prev)
+        if stance != 0 or has_prev:
+            user_msg += f"\n【立场倾向】{stance:+d}（整数：0 中性，正数更积极，负数更消极）"
+        if has_prev:
+            user_msg += "\n【上一轮候选】" + " / ".join(prev)
+            if stance > 0:
+                direction = ("整体比上一轮更积极/友善——可以带安抚、鼓励、幽默，"
+                             "但必须贴合场景合理性，不要无脑乐观")
+            elif stance < 0:
+                direction = ("整体比上一轮更消极/谨慎/强硬——可以直接表达拒绝、不满、为难、担忧等负面态度，"
+                             "不要强行乐观、和稀泥或软化语气（这是用户表达权的组成部分）")
+            else:
+                direction = "整体立场保持中性平衡"
+            user_msg += (f"\n注意：本批候选相对上一轮做调制：立场须与【立场倾向】一致，{direction}，"
+                         "且不要重复上一轮的表达方向。")
+        elif stance > 0:
+            user_msg += ("\n注意：本批候选整体语气更积极/友善/乐观——可以带安抚、鼓励、幽默，"
+                         "但必须仍然贴合场景合理性，不要无脑乐观。")
+        elif stance < 0:
+            user_msg += ("\n注意：本批候选整体立场更消极/谨慎/强硬——可以直接表达拒绝、不满、为难、担忧等负面态度，"
+                         "要诚实覆盖这些立场，不要强行乐观、和稀泥或软化语气。这是用户表达权的组成部分。")
         content = self._chat([
             {"role": "system", "content": self._SYSTEM_TMPL.replace("{k}", str(k))},
             {"role": "user", "content": user_msg},
@@ -173,13 +197,14 @@ class CachingProvider(CandidateProvider):
         self.inner = inner
         self.cache = cache
 
-    def get_candidates(self, context: str, draft: str, k: int = 8, batch: int = 0) -> "list[Candidate]":
-        hit = self.cache.get(context, draft, k, batch)
+    def get_candidates(self, context: str, draft: str, k: int = 8, batch: int = 0,
+                       stance: int = 0, prev: "list[str] | None" = None) -> "list[Candidate]":
+        hit = self.cache.get(context, draft, k, batch, stance, prev)
         if hit is not None:
             # 旧缓存条目可能带 complete 字段，读取时忽略
             return [Candidate(text=c["text"]) for c in hit]
-        cands = self.inner.get_candidates(context, draft, k, batch)
-        self.cache.put(context, draft, k, batch, [c.to_json() for c in cands])
+        cands = self.inner.get_candidates(context, draft, k, batch, stance, prev)
+        self.cache.put(context, draft, k, batch, [c.to_json() for c in cands], stance, prev)
         return cands
 
 
@@ -191,12 +216,13 @@ class SafeProvider(CandidateProvider):
         self.fallback = fallback or StaticProvider()
         self.last_error: "str | None" = None
 
-    def get_candidates(self, context: str, draft: str, k: int = 8, batch: int = 0) -> "list[Candidate]":
+    def get_candidates(self, context: str, draft: str, k: int = 8, batch: int = 0,
+                       stance: int = 0, prev: "list[str] | None" = None) -> "list[Candidate]":
         try:
-            return self.inner.get_candidates(context, draft, k, batch)
+            return self.inner.get_candidates(context, draft, k, batch, stance, prev)
         except Exception as exc:  # 网络/API/解析异常一律兜底
             self.last_error = f"{type(exc).__name__}: {exc}"
-            return self.fallback.get_candidates(context, draft, k, batch)
+            return self.fallback.get_candidates(context, draft, k, batch, stance, prev)
 
 
 class PrefetchProvider(CandidateProvider):
@@ -221,8 +247,9 @@ class PrefetchProvider(CandidateProvider):
         self._lock = threading.Lock()
         self.prefetch_done = 0              # 累计完成的后台预取次数（供 UI 提示）
 
-    def get_candidates(self, context: str, draft: str, k: int = 8, batch: int = 0) -> "list[Candidate]":
-        cands = self.inner.get_candidates(context, draft, k, batch)
+    def get_candidates(self, context: str, draft: str, k: int = 8, batch: int = 0,
+                       stance: int = 0, prev: "list[str] | None" = None) -> "list[Candidate]":
+        cands = self.inner.get_candidates(context, draft, k, batch, stance, prev)
         if self.limit > 0 and self.depth > 0:
             for cand in cands[: self.limit]:
                 self._schedule(context, draft + cand.text, k, self.depth)
@@ -232,6 +259,7 @@ class PrefetchProvider(CandidateProvider):
         return cands
 
     def _schedule(self, context: str, child_draft: str, k: int, depth: int) -> None:
+        # 预取目标都是“点选后”的新前缀：batch=0、stance=0、无上一轮候选
         if self.cache is not None and self.cache.get(context, child_draft, k, 0) is not None:
             return  # 已在缓存，点选时本来就直接命中
         key = DiskCache.make_key(context, child_draft, k, 0)

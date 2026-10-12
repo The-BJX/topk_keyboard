@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F7F8FA">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="懂你意思输入法"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:textColor="#17181B" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:lineSpacingExtra="4dp"
+            android:textSize="15sp"
+            android:textColor="#5A5D66"
+            android:text="为渐冻症、帕金森、失语症等打字困难的朋友设计：不碰键盘，只点候选大按钮就能把一句话“点”出来。候选由 AI 根据聊天上下文实时预测。" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="第 0 步 · 填写 AI 服务配置" />
+
+        <EditText
+            android:id="@+id/input_key"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="DeepSeek API Key（必填，仅保存在本机）"
+            android:inputType="textPassword"
+            android:textSize="15sp" />
+
+        <EditText
+            android:id="@+id/input_url"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:hint="API 地址（可选，默认官方）"
+            android:inputType="textUri"
+            android:textSize="15sp" />
+
+        <Button
+            android:id="@+id/btn_save"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:background="#07C160"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="保存配置" />
+
+        <Button
+            android:id="@+id/btn_test"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:background="#FFFFFF"
+            android:textSize="16sp"
+            android:text="测试连接" />
+
+        <TextView
+            android:id="@+id/test_result"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="13sp"
+            android:textColor="#B45309"
+            android:visibility="gone" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="第 1 步 · 在系统里启用本输入法" />
+
+        <Button
+            android:id="@+id/btn_enable"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:background="#FFFFFF"
+            android:textSize="16sp"
+            android:text="打开系统输入法设置" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="第 2 步 · 切换到本输入法" />
+
+        <Button
+            android:id="@+id/btn_switch"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:background="#FFFFFF"
+            android:textSize="16sp"
+            android:text="选择输入法" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="第 3 步（可选）· 屏幕识别兜底" />
+
+        <Button
+            android:id="@+id/btn_a11y"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:background="#FFFFFF"
+            android:textSize="16sp"
+            android:text="打开无障碍设置（截屏+本地OCR 兜底）" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="第 4 步（建议）· 微信消息自动记录" />
+
+        <Button
+            android:id="@+id/btn_notify"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:background="#FFFFFF"
+            android:textSize="16sp"
+            android:text="授予通知使用权（主上下文来源）" />
+
+        <Button
+            android:id="@+id/btn_clear_log"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="8dp"
+            android:background="#FFFFFF"
+            android:textSize="14sp"
+            android:text="清空本地聊天记录" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="开发者 · 调试悬浮窗" />
+
+        <Button
+            android:id="@+id/btn_debug"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:background="#FFFFFF"
+            android:textSize="16sp"
+            android:text="切换调试悬浮窗" />
+
+        <TextView
+            android:id="@+id/state_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:lineSpacingExtra="4dp"
+            android:textSize="14sp"
+            android:textColor="#0A7C3F"
+            android:text="…" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:lineSpacingExtra="4dp"
+            android:textSize="13sp"
+            android:textColor="#8A8D95"
+            android:text="使用说明：授予「通知使用权」后，微信新消息会自动记入本地聊天记录；在输入框点「📋 对方」即可基于最近聊天记录生成候选（点候选拼句子，组好点绿色「发送」，自己发过的消息也会记入记录）。想补更早的上文：在微信里向上滑动聊天页，再点一次「📋 对方」，屏幕识别会把看到的消息并入记录（多次点按=手动截长屏）。长按「📋 对方」可改用剪贴板粘贴。\n\n所有聊天记录只存在本机（最多 60 条，7 天自动清理，可一键清空）；屏幕识别在本机离线完成，只有最终选用的文字会发给 AI。\n\nAPI Key 只保存在手机本地，用于直接调用 DeepSeek，不经过任何第三方服务器。" />
+    </LinearLayout>
+</ScrollView>

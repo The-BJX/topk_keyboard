@@ -8,3 +8,9 @@ key.txt
 # Python
 __pycache__/
 *.pyc
+
+# Android 构建产物与本地配置
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties

@@ -1,0 +1,4 @@
+// 懂你意思输入法 · Android 根构建脚本
+plugins {
+    id "com.android.application" version "8.5.2" apply false
+}

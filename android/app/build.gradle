@@ -1,0 +1,40 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "com.dongni.ime"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.dongni.ime"
+        minSdk 24
+        targetSdk 34
+        versionCode 13
+        versionName "0.7.1"
+    }
+
+    // APK 文件名带版本号：app-0.2.0-debug.apk，避免覆盖安装时被系统/文件管理去重跳过
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            outputFileName = "app-${variant.versionName}-${variant.buildType.name}.apk"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// 零第三方依赖：org.json 由 Android 平台内置
+dependencies {
+    // 中文 OCR（ML Kit 内置模型版：自带离线模型，不需要设备上有谷歌服务框架，MIUI 可用）
+    implementation "com.google.mlkit:text-recognition-chinese:16.0.1"
+}
